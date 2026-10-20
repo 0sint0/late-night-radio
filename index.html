@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Late Night Radio – a browser mystery game. Tune the dial through static to find strange stations.">
+  <title>Late Night Radio</title>
+
+  <!--
+    Web fonts: loaded from Google Fonts.
+    Works on GitHub Pages and localhost.
+    Falls back to monospace / serif when offline (file://).
+    No other external requests exist in this project.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════
+       POWER-ON SCREEN
+       Shown until the user gestures; required to create
+       the AudioContext (browsers block audio otherwise).
+  ════════════════════════════════════════════════════ -->
+  <div id="power-screen" role="main" aria-label="Power on Late Night Radio">
+    <h1>Late Night Radio</h1>
+    <p>Somewhere in the static, something is waiting.</p>
+    <button id="power-btn" type="button" aria-label="Power on the radio">
+      Power On
+    </button>
+    <p id="audio-error" hidden role="alert">
+      Audio unavailable in this browser. Visual mode only.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       RADIO UI  (hidden until power-on)
+  ════════════════════════════════════════════════════ -->
+  <div id="radio-wrapper" hidden aria-label="Radio">
+
+    <div class="radio-body" role="region" aria-label="Radio controls">
+
+      <!-- Brand -->
+      <div class="radio-brand" aria-hidden="true">Noctua · Model III</div>
+
+      <!-- ── Dial scale ──────────────────────────────── -->
+      <div id="dial-area"
+           role="group"
+           aria-label="Frequency dial, 88.0 to 108.0 MHz">
+
+        <!-- Animated static canvas -->
+        <canvas id="static-canvas" aria-hidden="true"></canvas>
+
+        <!-- Tick marks and labels – built by JS -->
+        <div id="dial-ticks" aria-hidden="true"></div>
+
+        <!-- Glow line -->
+        <div class="dial-glow-line" aria-hidden="true"></div>
+
+        <!-- Needle -->
+        <div id="needle" aria-hidden="true"></div>
+
+      </div><!-- /#dial-area -->
+
+      <!-- ── Frequency readout ───────────────────────── -->
+      <div class="readout-row">
+        <div id="freq-readout-wrap" aria-live="polite" aria-atomic="true"
+             aria-label="Current frequency">
+          <span id="freq-readout" aria-hidden="true">88.0</span>
+          <span class="readout-unit" aria-hidden="true">MHz</span>
+        </div>
+      </div>
+
+      <!-- ── Tuning knob ─────────────────────────────── -->
+      <div class="knob-row">
+        <span class="knob-label" aria-hidden="true">← Tune →</span>
+
+        <div class="knob-wrap">
+          <div class="knob-bezel" aria-hidden="true"></div>
+          <div id="knob"
+               role="slider"
+               tabindex="0"
+               aria-label="Tuning knob"
+               aria-valuemin="880"
+               aria-valuemax="1080"
+               aria-valuenow="880"
+               aria-valuetext="88.0 MHz">
+          </div>
+        </div>
+
+        <span class="knob-label" aria-hidden="true">Drag or<br>use arrow keys</span>
+      </div>
+
+      <!-- ── Volume & mute ──────────────────────────── -->
+      <div class="controls-row">
+        <label class="ctrl-label" for="vol-slider">Vol</label>
+        <input id="vol-slider"
+               type="range"
+               min="0" max="1" step="0.01" value="1"
+               aria-label="Volume">
+        <button id="mute-btn"
+                type="button"
+                aria-label="Mute"
+                aria-pressed="false"
+                title="Mute / unmute">🔊</button>
+      </div>
+
+    </div><!-- /.radio-body -->
+
+    <!-- Bottom plate -->
+    <div class="radio-foot" aria-hidden="true"></div>
+
+  </div><!-- /#radio-wrapper -->
+
+  <!-- ═══════════════════════════════════════════════════
+       SCRIPTS  (dependency order, no ES modules)
+  ════════════════════════════════════════════════════ -->
+  <script src="js/stations.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/dial.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>

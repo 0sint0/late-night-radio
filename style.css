@@ -1,0 +1,485 @@
+/* ============================================================
+   style.css  –  Late Night Radio
+   Mood: dim room, warm glowing dial, tactile knob.
+============================================================ */
+
+/* ── Reset & base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --clr-room-bg      : #0a0804;
+  --clr-radio-body   : #1c1208;
+  --clr-dial-bg      : #0d0a04;
+  --clr-dial-glow    : #c8820a;
+  --clr-dial-warm    : #f0b84a;
+  --clr-dial-hot     : #ffe8a0;
+  --clr-needle       : #ff6b35;
+  --clr-knob-body    : #2a1f0f;
+  --clr-knob-marker  : #f0b84a;
+  --clr-readout-bg   : #050401;
+  --clr-readout-text : #f0b84a;
+  --clr-ui-dim       : #4a3820;
+  --clr-ui-mid       : #8a6030;
+  --clr-text-muted   : #5a4828;
+
+  --font-freq : 'Share Tech Mono', 'Courier New', 'Lucida Console', monospace;
+  --font-ui   : 'Special Elite', Georgia, 'Times New Roman', serif;
+
+  --radio-w   : min(580px, 96vw);
+  --dial-h    : 120px;
+  --knob-size : 80px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--clr-room-bg);
+  color: var(--clr-dial-warm);
+  font-family: var(--font-ui);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background-image: radial-gradient(ellipse 80% 70% at 50% 50%,
+    #1a1106 0%, #0a0804 55%, #000000 100%);
+}
+
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--clr-dial-warm); outline-offset: 2px; }
+
+/* ── Power-on screen ──────────────────────────────────── */
+#power-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  text-align: center;
+}
+
+#power-screen h1 {
+  font-family: var(--font-ui);
+  font-size: clamp(1.4rem, 5vw, 2.2rem);
+  color: var(--clr-dial-warm);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 20px var(--clr-dial-glow), 0 0 40px rgba(200,130,10,0.3);
+}
+
+#power-screen p {
+  font-size: 0.85rem;
+  color: var(--clr-text-muted);
+  max-width: 26ch;
+  line-height: 1.6;
+}
+
+#power-btn {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--clr-dial-warm);
+  background: transparent;
+  border: 1px solid var(--clr-ui-mid);
+  padding: 0.7em 2.2em;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border-radius: 2px;
+}
+
+#power-btn:hover,
+#power-btn:focus-visible {
+  color: var(--clr-dial-hot);
+  border-color: var(--clr-dial-warm);
+  box-shadow: 0 0 12px rgba(200,130,10,0.5), inset 0 0 8px rgba(200,130,10,0.08);
+  outline: none;
+}
+
+#audio-error {
+  font-size: 0.78rem;
+  color: #a06040;
+  border: 1px solid #6a3020;
+  padding: 0.5em 1em;
+  border-radius: 2px;
+  max-width: 30ch;
+  text-align: center;
+}
+
+/* ── Radio wrapper & body ─────────────────────────────── */
+#radio-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: var(--radio-w);
+}
+
+.radio-body {
+  width: 100%;
+  background: linear-gradient(160deg, #2a1e0e 0%, #1a1006 40%, #120d04 100%);
+  border-radius: 12px 12px 6px 6px;
+  padding: 1.4rem 1.6rem 1.2rem;
+  box-shadow:
+    0 2px 0 #0a0804,
+    0 4px 8px rgba(0,0,0,0.8),
+    0 12px 40px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,220,120,0.08),
+    inset 0 -1px 0 rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.radio-brand {
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  padding-bottom: 0.2rem;
+}
+
+/* ── Dial section ─────────────────────────────────────── */
+#dial-area {
+  position: relative;
+  width: 100%;
+  height: var(--dial-h);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: ew-resize;
+  background:
+    radial-gradient(ellipse 70% 100% at 50% 110%,
+      rgba(200,130,10,0.55) 0%,
+      rgba(140,80,5,0.25)  40%,
+      transparent          70%),
+    linear-gradient(to bottom, #0a0700 0%, #0e0c04 60%, #1a1206 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(200,130,10,0.15),
+    inset 0 -4px 20px rgba(200,130,10,0.25),
+    0 0 30px rgba(200,130,10,0.10);
+}
+
+#static-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: screen;
+}
+
+/* dial-ticks container fills the dial so tick % positions are correct */
+#dial-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #static-canvas { opacity: 0.06; }
+}
+
+.dial-glow-line {
+  position: absolute;
+  bottom: 27px;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent 0%, var(--clr-dial-glow) 20%,
+    var(--clr-dial-warm) 50%, var(--clr-dial-glow) 80%, transparent 100%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.tick-wrap {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.tick-line {
+  width: 1px;
+  background: var(--clr-dial-glow);
+  opacity: 0.6;
+}
+.tick-line.major { height: 14px; opacity: 0.9; width: 1.5px; }
+.tick-line.minor { height: 7px;  opacity: 0.4; }
+
+.tick-label {
+  font-family: var(--font-freq);
+  font-size: 0.55rem;
+  color: var(--clr-dial-warm);
+  opacity: 0.85;
+  white-space: nowrap;
+  margin-bottom: 3px;
+  order: -1;
+}
+
+/* ── Needle ──────────────────────────────────────────── */
+#needle {
+  position: absolute;
+  bottom: 0;
+  top: 0;
+  width: 2px;
+  margin-left: -1px;
+  pointer-events: none;
+  z-index: 10;
+  transition: left 0.04s linear;
+}
+
+#needle::before {
+  content: '';
+  position: absolute;
+  bottom: 0; top: 12px; left: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent 0%, var(--clr-needle) 30%, var(--clr-needle) 100%);
+  box-shadow: 0 0 6px var(--clr-needle), 0 0 2px rgba(255,100,50,0.8);
+}
+
+#needle::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
+  background: var(--clr-needle);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--clr-needle);
+}
+
+/* ── Readout ─────────────────────────────────────────── */
+.readout-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Knob section ─────────────────────────────────────── */
+.knob-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  padding: 0.4rem 0;
+}
+
+.knob-label {
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.knob-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--knob-size) + 14px);
+  height: calc(var(--knob-size) + 14px);
+}
+
+.knob-bezel {
+  width: calc(var(--knob-size) + 14px);
+  height: calc(var(--knob-size) + 14px);
+  border-radius: 50%;
+  position: absolute;
+  top: 0; left: 0;
+  background: radial-gradient(circle at 38% 28%, #2a2010 0%, #0e0a04 60%);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.9),
+    inset 0 -1px 2px rgba(255,200,80,0.05);
+  pointer-events: none;
+}
+
+#knob {
+  width: var(--knob-size);
+  height: var(--knob-size);
+  border-radius: 50%;
+  cursor: grab;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  outline: none;
+  background: radial-gradient(circle at 38% 32%, #5a3e20 0%, #2a1f0f 50%, #1a1208 100%);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.8),
+    inset 0 2px 4px rgba(255,200,100,0.08),
+    inset 0 -2px 6px rgba(0,0,0,0.6),
+    0 0 0 2px #0e0a04,
+    0 0 0 3px rgba(200,130,10,0.2);
+  transition: box-shadow 0.15s;
+  will-change: transform;
+}
+
+#knob:hover {
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.9),
+    inset 0 2px 4px rgba(255,200,100,0.1),
+    inset 0 -2px 6px rgba(0,0,0,0.6),
+    0 0 0 2px #0e0a04,
+    0 0 0 3px rgba(200,130,10,0.5),
+    0 0 16px rgba(200,130,10,0.2);
+}
+
+#knob:focus-visible {
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.9),
+    inset 0 2px 4px rgba(255,200,100,0.1),
+    inset 0 -2px 6px rgba(0,0,0,0.6),
+    0 0 0 2px #0e0a04,
+    0 0 0 4px var(--clr-dial-warm),
+    0 0 20px rgba(240,184,74,0.4);
+  outline: none;
+}
+
+#knob:active { cursor: grabbing; }
+
+#knob::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 20%;
+  background: linear-gradient(to bottom, var(--clr-knob-marker), rgba(240,184,74,0.4));
+  border-radius: 2px;
+  box-shadow: 0 0 4px var(--clr-knob-marker);
+}
+
+/* ── Volume / mute controls ───────────────────────────── */
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding-top: 0.2rem;
+}
+
+.ctrl-label {
+  font-family: var(--font-ui);
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+}
+
+#vol-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 4px;
+  background: linear-gradient(to right, var(--clr-dial-glow) 0%, var(--clr-ui-dim) 100%);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+}
+#vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--clr-dial-warm);
+  box-shadow: 0 0 6px rgba(240,184,74,0.6);
+  cursor: pointer;
+}
+#vol-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--clr-dial-warm);
+  box-shadow: 0 0 6px rgba(240,184,74,0.6);
+  cursor: pointer;
+  border: none;
+}
+#vol-slider:focus-visible { outline: none; }
+#vol-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--clr-dial-hot), 0 0 10px rgba(240,184,74,0.6);
+}
+#vol-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--clr-dial-hot), 0 0 10px rgba(240,184,74,0.6);
+}
+
+#mute-btn {
+  background: transparent;
+  border: 1px solid var(--clr-ui-dim);
+  border-radius: 50%;
+  width: 30px; height: 30px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  color: inherit;
+  flex-shrink: 0;
+}
+#mute-btn:hover {
+  border-color: var(--clr-dial-glow);
+  box-shadow: 0 0 8px rgba(200,130,10,0.3);
+}
+#mute-btn:focus-visible {
+  outline: none;
+  border-color: var(--clr-dial-warm);
+  box-shadow: 0 0 0 2px var(--clr-dial-warm), 0 0 10px rgba(240,184,74,0.4);
+}
+
+/* ── Bottom plate ─────────────────────────────────────── */
+.radio-foot {
+  width: 100%;
+  background: linear-gradient(to bottom, #140e05, #0e0902);
+  border-radius: 0 0 8px 8px;
+  height: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(0,0,0,0.5);
+}
+
+/* ── Responsive tweaks ────────────────────────────────── */
+@media (max-width: 400px) {
+  :root { --knob-size: 64px; --dial-h: 100px; }
+  .knob-row { gap: 1rem; }
+  #freq-readout { font-size: 1.5rem; }
+}
+
+
+#freq-readout-wrap {
+  background: var(--clr-readout-bg);
+  border-radius: 3px;
+  padding: 0.3em 0.8em 0.25em;
+  border: 1px solid rgba(200,130,10,0.2);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(200,130,10,0.15);
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+
+#freq-readout {
+  font-family: var(--font-freq);
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  color: var(--clr-readout-text);
+  text-shadow: 0 0 8px rgba(240,184,74,0.8), 0 0 20px rgba(240,184,74,0.3);
+  letter-spacing: 0.04em;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.readout-unit {
+  font-family: var(--font-freq);
+  font-size: 0.7rem;
+  color: var(--clr-ui-mid);
+  letter-spacing: 0.1em;
+  align-self: flex-end;
+  padding-bottom: 0.2em;
+}
+
