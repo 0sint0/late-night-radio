@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -73,6 +73,35 @@
           <span class="readout-unit" aria-hidden="true">MHz</span>
         </div>
       </div>
+
+      <!-- ── Station info panel (Slice 2) ───────────────── -->
+      <div id="station-panel"
+           class="station-panel"
+           role="status"
+           aria-live="polite"
+           aria-atomic="true"
+           aria-label="Station information">
+
+        <div class="station-panel-left">
+          <div id="lock-lamp"
+               class="lock-lamp"
+               aria-label="Tuning&#x2026;"
+               title="Station lock indicator"></div>
+          <div class="station-info">
+            <span id="station-name" class="station-name">&#x2014;</span>
+            <span id="station-type" class="station-type">&#x2014;</span>
+          </div>
+        </div>
+
+        <div class="signal-meter" aria-hidden="true" title="Signal strength">
+          <div class="sig-seg"></div>
+          <div class="sig-seg"></div>
+          <div class="sig-seg"></div>
+          <div class="sig-seg"></div>
+          <div class="sig-seg"></div>
+        </div>
+
+      </div><!-- /#station-panel -->
 
       <!-- ── Tuning knob ─────────────────────────────── -->
       <div class="knob-row">

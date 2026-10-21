@@ -1,53 +1,50 @@
-/* =============================================================
-   main.js  –  Power-on, wiring, UI controls.
-   Slice 1: AudioContext creation, dial ↔ audio bridge,
-            volume slider, mute button, static canvas, dial ticks.
-   Slices 2-6 will extend window.LNR for station management.
+﻿/* =============================================================
+   main.js  â€“  Power-on, wiring, UI controls.
+   Slice 1: AudioContext creation, dial bridge, volume, canvas, ticks.
+   Slice 2: Station detection, signal meter, lock lamp, found-list.
+   Slices 3-6 will extend window.LNR further.
 ================================================================ */
 
 (function () {
 
-  /* ── Build dial tick marks ────────────────────────────── */
+  /* â”€â”€ Slice 2 state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  var foundStations = {};   // id -> station  (in-memory; Slice 5 saves)
+  var lockTimer     = null;
+  var lockedStation = null;
+  var LOCK_HOLD_MS  = 1000;
+
+  /* â”€â”€ Build dial tick marks (Slice 1, unchanged) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function buildDialTicks() {
     var container = document.getElementById('dial-ticks');
     if (!container) return;
-
-    var FREQ_MIN  = 88.0;
-    var FREQ_MAX  = 108.0;
+    var FREQ_MIN   = 88.0;
+    var FREQ_MAX   = 108.0;
     var FREQ_RANGE = FREQ_MAX - FREQ_MIN;
-
-    /* Major ticks every 2 MHz labelled, minor ticks every 0.5 MHz */
-    var tickData = [];
+    var tickData   = [];
     for (var f = FREQ_MIN; f <= FREQ_MAX + 0.001; f = Math.round((f + 0.5) * 10) / 10) {
-      var isMajor = Math.round(f * 10) % 20 === 0;   // every 2 MHz
+      var isMajor = Math.round(f * 10) % 20 === 0;
       tickData.push({ freq: f, major: isMajor });
     }
-
     tickData.forEach(function (t) {
       var pct  = (t.freq - FREQ_MIN) / FREQ_RANGE * 100;
       var wrap = document.createElement('div');
-      wrap.className   = 'tick-wrap';
-      wrap.style.left  = pct + '%';
-
+      wrap.className  = 'tick-wrap';
+      wrap.style.left = pct + '%';
       if (t.major) {
         var label = document.createElement('span');
         label.className   = 'tick-label';
-        label.textContent = t.freq % 1 === 0
-          ? t.freq.toFixed(0)
-          : t.freq.toFixed(1);
+        label.textContent = t.freq % 1 === 0 ? t.freq.toFixed(0) : t.freq.toFixed(1);
         wrap.appendChild(label);
       }
-
       var line = document.createElement('div');
       line.className = 'tick-line ' + (t.major ? 'major' : 'minor');
       wrap.appendChild(line);
-
       container.appendChild(wrap);
     });
   }
 
-  /* ── Canvas static animation ─────────────────────────── */
+  /* â”€â”€ Canvas static (Slice 1, unchanged) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   var canvas, canvasCtx, animFrame;
   var reducedMotion = window.matchMedia &&
                       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -61,11 +58,7 @@
       resizeCanvas();
       if (reducedMotion) drawStaticSubtle();
     });
-    if (!reducedMotion) {
-      drawStatic();
-    } else {
-      drawStaticSubtle();
-    }
+    if (!reducedMotion) { drawStatic(); } else { drawStaticSubtle(); }
   }
 
   function resizeCanvas() {
@@ -83,10 +76,8 @@
     var data      = imageData.data;
     for (var i = 0; i < data.length; i += 4) {
       var v = (Math.random() * 60) | 0;
-      data[i]     = v;
-      data[i + 1] = v;
-      data[i + 2] = v;
-      data[i + 3] = Math.random() > 0.55 ? ((Math.random() * 80) | 0) : 0;
+      data[i] = v; data[i+1] = v; data[i+2] = v;
+      data[i+3] = Math.random() > 0.55 ? ((Math.random() * 80) | 0) : 0;
     }
     canvasCtx.putImageData(imageData, 0, 0);
     animFrame = requestAnimationFrame(drawStatic);
@@ -100,34 +91,97 @@
     var data      = imageData.data;
     for (var i = 0; i < data.length; i += 4) {
       var v = (Math.random() * 30) | 0;
-      data[i]     = v;
-      data[i + 1] = v;
-      data[i + 2] = v;
-      data[i + 3] = Math.random() > 0.7 ? 30 : 0;
+      data[i] = v; data[i+1] = v; data[i+2] = v;
+      data[i+3] = Math.random() > 0.7 ? 30 : 0;
     }
     canvasCtx.putImageData(imageData, 0, 0);
   }
 
-  /* ── Power-on ─────────────────────────────────────────── */
+  /* â”€â”€ Slice 2: station UI helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+  function updateSignalMeter(strength) {
+    var segs = document.querySelectorAll('.sig-seg');
+    var lit  = Math.round(strength * segs.length);
+    segs.forEach(function (seg, i) {
+      seg.classList.toggle('sig-seg--on', i < lit);
+    });
+  }
+
+  function updateStationPanel(station, strength, locked) {
+    var panel  = document.getElementById('station-panel');
+    var nameEl = document.getElementById('station-name');
+    var typeEl = document.getElementById('station-type');
+    var lampEl = document.getElementById('lock-lamp');
+    if (!panel) return;
+    if (station && strength > 0.05) {
+      panel.classList.add('station-panel--visible');
+      nameEl.textContent = station.name;
+      typeEl.textContent = station.type;
+      typeEl.className   = 'station-type station-type--' + station.type;
+      lampEl.classList.toggle('lock-lamp--on', !!locked);
+      lampEl.setAttribute('aria-label', locked ? 'Station locked' : 'Tuning\u2026');
+    } else {
+      panel.classList.remove('station-panel--visible');
+      lampEl.classList.remove('lock-lamp--on');
+    }
+  }
+
+  function markFound(station) {
+    if (foundStations[station.id]) return;
+    foundStations[station.id] = station;
+    var lamp = document.getElementById('lock-lamp');
+    if (lamp) {
+      lamp.classList.add('lock-lamp--flash');
+      setTimeout(function () { lamp.classList.remove('lock-lamp--flash'); }, 600);
+    }
+    console.info('LNR: locked "' + station.name + '" @ ' + station.frequency + ' MHz');
+  }
+
+  /* â”€â”€ Slice 2: frequency-change handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+  function onFreqChange(freq, sweeping) {
+    AudioEngine.onDialMove(sweeping);
+
+    var result   = getSignalStrength(freq);
+    var station  = result.station;
+    var strength = result.strength;
+
+    AudioEngine.setStationStrength(station, strength);
+    updateSignalMeter(strength);
+
+    var isLocked = lockedStation && station && lockedStation.id === station.id;
+    updateStationPanel(station, strength, isLocked);
+
+    if (station && Math.abs(freq - station.frequency) <= LOCK_THRESHOLD) {
+      if (!lockedStation || lockedStation.id !== station.id) {
+        if (lockTimer) clearTimeout(lockTimer);
+        lockTimer = setTimeout(function () {
+          lockedStation = station;
+          markFound(station);
+          updateStationPanel(station, getSignalStrength(Dial.getFrequency()).strength, true);
+        }, LOCK_HOLD_MS);
+      }
+    } else {
+      if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+      if (lockedStation && !(station && lockedStation.id === station.id)) {
+        lockedStation = null;
+        updateStationPanel(station, strength, false);
+      }
+    }
+  }
+
+  /* â”€â”€ Power-on â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function powerOn() {
     var err         = document.getElementById('audio-error');
     var powerScreen = document.getElementById('power-screen');
     var radio       = document.getElementById('radio-wrapper');
-
     var ok = AudioEngine.init();
     if (!ok && err) { err.hidden = false; }
-
     if (powerScreen) powerScreen.hidden = true;
     if (radio)       radio.hidden       = false;
-
-    /* Build scale ticks now that the dial is in the DOM */
     buildDialTicks();
-
-    /* Kick off canvas noise */
     initCanvas();
-
-    /* Wire the dial */
     Dial.init(
       {
         knob    : document.getElementById('knob'),
@@ -135,45 +189,37 @@
         readout : document.getElementById('freq-readout'),
         dialArea: document.getElementById('dial-area')
       },
-      function onFreqChange(freq, sweeping) {
-        AudioEngine.onDialMove(sweeping);
-        /* Slice 2 will add station detection here */
-      }
+      onFreqChange
     );
-
-    /* Volume slider */
     var volSlider = document.getElementById('vol-slider');
     if (volSlider) {
       volSlider.addEventListener('input', function () {
         AudioEngine.setVolume(parseFloat(this.value));
       });
     }
-
-    /* Mute button */
     var muteBtn = document.getElementById('mute-btn');
     if (muteBtn) {
       muteBtn.addEventListener('click', function () {
         var nowMuted = AudioEngine.toggleMute();
-        muteBtn.textContent = nowMuted ? '🔇' : '🔊';
+        muteBtn.textContent = nowMuted ? 'ðŸ”‡' : 'ðŸ”Š';
         muteBtn.setAttribute('aria-label',   nowMuted ? 'Unmute' : 'Mute');
         muteBtn.setAttribute('aria-pressed', String(nowMuted));
       });
     }
   }
 
-  /* ── Boot ─────────────────────────────────────────────── */
+  /* â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('power-btn');
     if (btn) btn.addEventListener('click', powerOn);
   });
 
-  /* Expose namespace for later slices */
   window.LNR = {
-    AudioEngine: AudioEngine,
-    Dial       : Dial,
-    Stations   : STATIONS
+    AudioEngine     : AudioEngine,
+    Dial            : Dial,
+    Stations        : STATIONS,
+    getFoundStations: function () { return foundStations; }
   };
 
 }());
-

@@ -445,8 +445,160 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(0,0,0,0.5);
 }
 
+
+
+/* ── Slice 2: Station panel ────────────────────────────── */
+
+/*
+  The panel lives between the frequency readout and the knob.
+  It starts invisible (opacity 0, height 0) and slides in when
+  JS adds .station-panel--visible.
+*/
+.station-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 4px;
+  background: rgba(10, 7, 2, 0.7);
+  border: 1px solid rgba(200, 130, 10, 0.12);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.6);
+
+  /* hidden by default */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.4s ease,
+              border-color 0.4s ease;
+  pointer-events: none;
+}
+
+.station-panel--visible {
+  max-height: 60px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Left side: lamp + name/type ───────────────────────── */
+.station-panel-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.station-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.station-name {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--clr-dial-warm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.04em;
+}
+
+.station-type {
+  font-family: var(--font-freq);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.1em 0.45em;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  display: inline-block;
+  width: fit-content;
+}
+
+.station-type--music    { color: #c8d87a; border-color: rgba(200,216,122,0.35); }
+.station-type--morse    { color: #7abecc; border-color: rgba(122,190,204,0.35); }
+.station-type--fragment { color: #cc9a7a; border-color: rgba(204,154,122,0.35); }
+
+/* ── Lock lamp ─────────────────────────────────────────── */
+.lock-lamp {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--clr-ui-dim);
+  border: 1px solid var(--clr-text-muted);
+  box-shadow: none;
+  transition: background 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+
+.lock-lamp--on {
+  background: #f0b84a;
+  border-color: #ffe8a0;
+  box-shadow:
+    0 0 6px rgba(240,184,74,0.9),
+    0 0 14px rgba(240,184,74,0.5);
+}
+
+/* Brief flash animation when a station is first found */
+@keyframes lampFlash {
+  0%   { box-shadow: 0 0 6px rgba(240,184,74,0.9), 0 0 14px rgba(240,184,74,0.5); }
+  50%  { box-shadow: 0 0 18px rgba(240,184,74,1.0), 0 0 36px rgba(240,184,74,0.7); background: #ffe8a0; }
+  100% { box-shadow: 0 0 6px rgba(240,184,74,0.9), 0 0 14px rgba(240,184,74,0.5); }
+}
+
+.lock-lamp--flash {
+  animation: lampFlash 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lock-lamp--flash { animation: none; }
+  .station-panel    { transition: none; }
+}
+
+/* ── Signal meter ──────────────────────────────────────── */
+.signal-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.sig-seg {
+  width: 6px;
+  border-radius: 1px;
+  background: var(--clr-ui-dim);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+/* Staircase heights: each segment is taller than the last */
+.sig-seg:nth-child(1) { height: 6px;  }
+.sig-seg:nth-child(2) { height: 9px;  }
+.sig-seg:nth-child(3) { height: 13px; }
+.sig-seg:nth-child(4) { height: 17px; }
+.sig-seg:nth-child(5) { height: 21px; }
+
+.sig-seg--on {
+  background: var(--clr-dial-glow);
+  box-shadow: 0 0 4px rgba(200,130,10,0.6);
+}
+
+/* Top two segments glow warmer when strong signal */
+.sig-seg:nth-child(4).sig-seg--on,
+.sig-seg:nth-child(5).sig-seg--on {
+  background: var(--clr-dial-warm);
+  box-shadow: 0 0 6px rgba(240,184,74,0.7);
+}
+
 /* ── Responsive tweaks ────────────────────────────────── */
 @media (max-width: 400px) {
+  :root { --knob-size: 64px; --dial-h: 100px; }
+  .knob-row { gap: 1rem; }
+  #freq-readout { font-size: 1.5rem; }
+}
+
   :root { --knob-size: 64px; --dial-h: 100px; }
   .knob-row { gap: 1rem; }
   #freq-readout { font-size: 1.5rem; }
