@@ -2,7 +2,7 @@
 
 A small browser mystery game. Tune an old radio dial through static to find strange stations broadcasting Morse code, eerie tones, and fragments of a hidden story.
 
-**Status:** Slice 2 of 6 complete.
+**Status:** Slice 3 of 6 complete.
 
 ## How to play
 
