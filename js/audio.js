@@ -2,6 +2,7 @@
    audio.js  -  AudioContext, noise, station synthesis.
    Slice 1: white-noise static, filter sweep, crackle.
    Slice 2: music/morse/fragment audio + signal cross-fade.
+   Slice 3: real Morse keying, key-callback for visual sync.
 ================================================================ */
 
 var AudioEngine = (function () {
@@ -22,6 +23,10 @@ var AudioEngine = (function () {
   var filterNode = null; var noiseSource = null; var crackleGain = null;
   var stationGain = null; var activePlayer = null; var activeStation = null;
   var muted = false; var volumeLevel = 1.0; var settleTimer = null; var ready = false;
+
+  /* Slice 3: Morse state */
+  var morseKeyCallback = null;
+  var morseUnitMs      = 300;   /* default: slow */
 
   function rampGain(gainNode, target, dur) {
     var now = ctx.currentTime;
@@ -53,7 +58,7 @@ var AudioEngine = (function () {
     stationGain = ctx.createGain(); stationGain.gain.value = 0; stationGain.connect(masterGain);
   }
 
-  /* ---- Music station generator ---- */
+  /* Music generator (Slice 2, unchanged) */
   function makeMusicPlayer(station, outputGain) {
     var melodies = {};
     melodies['st-01'] = { notes:[261.6,293.7,329.6,349.2,329.6,293.7], tempo:0.55, wave:'sine' };
@@ -82,28 +87,78 @@ var AudioEngine = (function () {
     return { outputGain: outputGain, stop: function () { stopped = true; clearInterval(tmr); oscs.forEach(function (o) { try { o.stop(); } catch (e) {} }); oscs = []; } };
   }
 
-  /* ---- Morse placeholder generator ---- */
-  function makeMorsePlaceholder(station, outputGain) {
+  /* Slice 3: real Morse generator */
+  function makeMorsePlayer(station, outputGain) {
+    if (typeof Morse === 'undefined') return makeMorseFallback(station, outputGain);
     var stopped = false;
+    var seq = Morse.toSequence(station.content);
+    if (!seq || !seq.length) return makeMorseFallback(station, outputGain);
     var osc = ctx.createOscillator(); var env = ctx.createGain();
     osc.type = 'sine'; osc.frequency.value = 600; env.gain.value = 0;
     osc.connect(env); env.connect(outputGain); osc.start();
-    var dotDur = 0.12; var cycleMs = 260;
-    function pulse() {
+    var tmr = null; var si = 0;
+    var RAMP = 0.005;
+    function schedNext() {
       if (stopped) return;
+      if (si >= seq.length) {
+        var pauseMs = Math.max(1500, morseUnitMs * 14);
+        si = 0;
+        if (morseKeyCallback) morseKeyCallback(false, 'loop', 0);
+        tmr = setTimeout(schedNext, pauseMs);
+        return;
+      }
+      var ev = seq[si++];
+      var durMs = ev.units * morseUnitMs;
+      var durSec = durMs / 1000;
       var t = ctx.currentTime;
-      env.gain.cancelScheduledValues(t);
-      env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(TONE_GAIN, t + 0.01);
-      env.gain.setValueAtTime(TONE_GAIN, t + dotDur - 0.01);
-      env.gain.linearRampToValueAtTime(0, t + dotDur);
+      if (ev.on) {
+        env.gain.cancelScheduledValues(t);
+        env.gain.setValueAtTime(env.gain.value, t);
+        env.gain.linearRampToValueAtTime(TONE_GAIN, t + RAMP);
+        env.gain.setValueAtTime(TONE_GAIN, t + durSec - RAMP);
+        env.gain.linearRampToValueAtTime(0, t + durSec);
+        if (morseKeyCallback) morseKeyCallback(true, ev.symbol, 0);
+        tmr = setTimeout(function () {
+          if (morseKeyCallback) morseKeyCallback(false, '', 0);
+          schedNext();
+        }, durMs);
+      } else {
+        if (morseKeyCallback) morseKeyCallback(false, ev.symbol, ev.units);
+        tmr = setTimeout(schedNext, durMs);
+      }
     }
-    pulse();
-    var tmr = setInterval(pulse, cycleMs);
-    return { outputGain: outputGain, stop: function () { stopped = true; clearInterval(tmr); var t = ctx.currentTime; env.gain.cancelScheduledValues(t); env.gain.setValueAtTime(env.gain.value, t); env.gain.linearRampToValueAtTime(0, t + 0.05); try { osc.stop(t + 0.1); } catch (e) {} } };
+    schedNext();
+    return {
+      outputGain: outputGain,
+      stop: function () {
+        stopped = true;
+        if (tmr) clearTimeout(tmr);
+        if (morseKeyCallback) morseKeyCallback(false, '');
+        var t = ctx.currentTime;
+        env.gain.cancelScheduledValues(t);
+        env.gain.setValueAtTime(env.gain.value, t);
+        env.gain.linearRampToValueAtTime(0, t + 0.02);
+        try { osc.stop(t + 0.05); } catch (e) {}
+      }
+    };
   }
 
-  /* ---- Fragment generator ---- */
+  /* Fallback if Morse library not loaded */
+  function makeMorseFallback(station, outputGain) {
+    var stopped = false; var osc = ctx.createOscillator(); var env = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = 600; env.gain.value = 0;
+    osc.connect(env); env.connect(outputGain); osc.start();
+    var tmr = setInterval(function () {
+      if (stopped) return;
+      var t = ctx.currentTime;
+      env.gain.cancelScheduledValues(t); env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(TONE_GAIN, t + 0.01);
+      env.gain.setValueAtTime(TONE_GAIN, t + 0.1); env.gain.linearRampToValueAtTime(0, t + 0.12);
+    }, 260);
+    return { outputGain: outputGain, stop: function () { stopped = true; clearInterval(tmr); try { osc.stop(); } catch(e){} } };
+  }
+
+  /* Fragment generator (Slice 2, unchanged) */
   function makeFragmentPlayer(station, outputGain) {
     var stopped = false; var patterns = {};
     patterns['st-03'] = { freqs:[220,277.2,185], timings:[300,500,700,1100] };
@@ -130,15 +185,15 @@ var AudioEngine = (function () {
     return { outputGain: outputGain, stop: function () { stopped = true; if (tmr) clearTimeout(tmr); } };
   }
 
-  /* ---- Station lifecycle ---- */
+  /* Station lifecycle */
   function startStation(station) {
     if (activeStation && activeStation.id === station.id) return;
     stopStation(false);
     activeStation = station;
     var og = ctx.createGain(); og.gain.value = 0; og.connect(stationGain);
     if      (station.type === 'music') { activePlayer = makeMusicPlayer(station, og); }
-    else if (station.type === 'morse') { activePlayer = makeMorsePlaceholder(station, og); }
-    else                                 { activePlayer = makeFragmentPlayer(station, og); }
+    else if (station.type === 'morse') { activePlayer = makeMorsePlayer(station, og); }
+    else                                   { activePlayer = makeFragmentPlayer(station, og); }
   }
 
   function stopStation(withFade) {
@@ -163,7 +218,7 @@ var AudioEngine = (function () {
     }
   }
 
-  /* ---- Core init and controls ---- */
+  /* Core init and controls */
   function init() {
     if (ready) return true;
     try {
@@ -225,6 +280,11 @@ var AudioEngine = (function () {
     rampGain(staticGain, Math.max(0, Math.min(1, level)), durationSec || 0.3);
   }
 
+  /* Slice 3: Morse control */
+  function setMorseKeyCallback(fn) { morseKeyCallback = fn; }
+  function setMorseUnitMs(ms)       { morseUnitMs = Math.max(40, ms); }
+  function getMorseUnitMs()          { return morseUnitMs; }
+
   function getContext()    { return ctx; }
   function getMasterGain() { return masterGain; }
 
@@ -236,6 +296,9 @@ var AudioEngine = (function () {
     toggleMute         : toggleMute,
     setStaticLevel     : setStaticLevel,
     setStationStrength : setStationStrength,
+    setMorseKeyCallback: setMorseKeyCallback,
+    setMorseUnitMs     : setMorseUnitMs,
+    getMorseUnitMs     : getMorseUnitMs,
     getContext         : getContext,
     getMasterGain      : getMasterGain,
     isMuted            : function () { return muted; },

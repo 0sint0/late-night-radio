@@ -103,6 +103,74 @@
 
       </div><!-- /#station-panel -->
 
+      <!-- ── Slice 3: Morse panel ──────────────────────────── -->
+      <!-- Hidden until a Morse station is in range.
+           JS adds .morse-panel--visible to show it. -->
+      <div id="morse-panel" class="morse-panel" aria-label="Morse reception">
+
+        <!-- Top row: blink lamp + received-symbols strip -->
+        <div class="morse-top-row">
+          <div id="morse-lamp"
+               class="morse-lamp"
+               aria-hidden="true"
+               title="Morse key indicator"></div>
+          <div id="morse-strip"
+               class="morse-strip"
+               aria-live="polite"
+               aria-label="Received Morse symbols"
+               aria-atomic="false"></div>
+          <button id="morse-chart-btn"
+                  class="morse-chart-btn"
+                  type="button"
+                  aria-label="Open Morse code chart"
+                  title="Morse chart">&#x3F;</button>
+        </div>
+
+        <!-- Speed control -->
+        <div class="morse-speed-row" role="group" aria-label="Morse speed">
+          <span class="morse-speed-label">Speed</span>
+          <div class="morse-speed-btns">
+            <button class="morse-speed-btn morse-speed-btn--active"
+                    data-speed="slow"   type="button"
+                    aria-pressed="true">Slow</button>
+            <button class="morse-speed-btn"
+                    data-speed="normal" type="button"
+                    aria-pressed="false">Normal</button>
+            <button class="morse-speed-btn"
+                    data-speed="fast"   type="button"
+                    aria-pressed="false">Fast</button>
+          </div>
+        </div>
+
+        <!-- Decoder (shown only when locked on a Morse station) -->
+        <div id="morse-decoder" class="morse-decoder" aria-label="Decode the message">
+          <label class="morse-decoder-label" for="morse-input">
+            What does it say?
+          </label>
+          <div class="morse-decoder-row">
+            <input id="morse-input"
+                   class="morse-input"
+                   type="text"
+                   autocomplete="off"
+                   spellcheck="false"
+                   aria-label="Type your decoded message here"
+                   placeholder="type your answer here">
+            <button id="morse-check-btn"
+                    class="morse-action-btn"
+                    type="button">Check</button>
+            <button id="morse-reveal-btn"
+                    class="morse-action-btn morse-action-btn--secondary"
+                    type="button">Reveal</button>
+          </div>
+          <div id="morse-result"
+               class="morse-result"
+               role="status"
+               aria-live="polite"
+               aria-atomic="true"></div>
+        </div>
+
+      </div><!-- /#morse-panel -->
+
       <!-- ── Tuning knob ─────────────────────────────── -->
       <div class="knob-row">
         <span class="knob-label" aria-hidden="true">← Tune →</span>
@@ -145,9 +213,45 @@
   </div><!-- /#radio-wrapper -->
 
   <!-- ═══════════════════════════════════════════════════
+       Slice 3: Morse chart dialog
+       Opened by "?" button; closed by Escape or Close button.
+       role=dialog + aria-modal keeps screen readers inside it.
+  ════════════════════════════════════════════════════ -->
+  <div id="morse-chart-dialog"
+       class="morse-chart-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="morse-chart-title"
+       hidden>
+
+    <div class="morse-chart-inner">
+      <div class="morse-chart-header">
+        <h2 id="morse-chart-title" class="morse-chart-title">Morse Code</h2>
+        <button id="morse-chart-close"
+                class="morse-chart-close"
+                type="button"
+                aria-label="Close Morse chart">&#x2715;</button>
+      </div>
+
+      <div class="morse-chart-grid" aria-label="Morse code chart">
+        <!-- Built by JS from Morse.TABLE -->
+      </div>
+
+      <p class="morse-chart-timing">
+        · = short &nbsp;|&nbsp; − = long &nbsp;|&nbsp;
+        gap within letter = short &nbsp;|&nbsp;
+        gap between letters = medium &nbsp;|&nbsp;
+        gap between words = long
+      </p>
+    </div>
+
+  </div><!-- /#morse-chart-dialog -->
+
+  <!-- ═══════════════════════════════════════════════════
        SCRIPTS  (dependency order, no ES modules)
   ════════════════════════════════════════════════════ -->
   <script src="js/stations.js"></script>
+  <script src="js/morse.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/dial.js"></script>
   <script src="js/main.js"></script>

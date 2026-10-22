@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    style.css  –  Late Night Radio
    Mood: dim room, warm glowing dial, tactile knob.
 ============================================================ */
@@ -635,3 +635,311 @@ body {
   padding-bottom: 0.2em;
 }
 
+
+
+/* =====================================================
+   Slice 3: Morse panel, lamp, strip, speed, decoder
+====================================================== */
+
+/* ── Morse panel outer ──────────────────────────────── */
+.morse-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  background: rgba(8, 6, 2, 0.75);
+  border: 1px solid rgba(122, 190, 204, 0.12);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  pointer-events: none;
+}
+.morse-panel--visible {
+  max-height: 240px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Top row: blink lamp + strip + chart button ──────── */
+.morse-top-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+/* Morse blink lamp */
+.morse-lamp {
+  flex-shrink: 0;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: rgba(122, 190, 204, 0.12);
+  border: 1px solid rgba(122, 190, 204, 0.3);
+  transition: background 0.04s, box-shadow 0.04s;
+}
+.morse-lamp--on {
+  background: #7abecc;
+  border-color: #aadde8;
+  box-shadow: 0 0 6px rgba(122,190,204,0.9), 0 0 14px rgba(122,190,204,0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .morse-lamp    { transition: none; }
+  .morse-lamp--on { background: #7abecc; border-color: #aadde8;
+                    box-shadow: 0 0 6px rgba(122,190,204,0.9); }
+  .morse-panel   { transition: none; }
+}
+
+/* ── Received strip ─────────────────────────────────── */
+.morse-strip {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-freq);
+  font-size: 0.78rem;
+  color: #7abecc;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+  min-height: 1.2em;
+}
+
+/* Chart open button */
+.morse-chart-btn {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(122,190,204,0.35);
+  background: transparent;
+  color: #7abecc;
+  font-family: var(--font-freq);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.morse-chart-btn:hover,
+.morse-chart-btn:focus-visible {
+  border-color: #7abecc;
+  box-shadow: 0 0 6px rgba(122,190,204,0.4);
+  outline: none;
+}
+
+/* ── Speed control ──────────────────────────────────── */
+.morse-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.morse-speed-label {
+  font-family: var(--font-freq);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+}
+.morse-speed-btns {
+  display: flex;
+  gap: 0.3rem;
+}
+.morse-speed-btn {
+  font-family: var(--font-freq);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  background: transparent;
+  border: 1px solid rgba(122,190,204,0.18);
+  padding: 0.2em 0.55em;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.morse-speed-btn:hover,
+.morse-speed-btn:focus-visible {
+  color: #7abecc;
+  border-color: rgba(122,190,204,0.5);
+  outline: none;
+}
+.morse-speed-btn--active,
+.morse-speed-btn[aria-pressed="true"] {
+  color: #7abecc;
+  border-color: rgba(122,190,204,0.6);
+  box-shadow: 0 0 6px rgba(122,190,204,0.25);
+}
+
+/* ── Decoder section ────────────────────────────────── */
+.morse-decoder {
+  display: none;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-top: 1px solid rgba(122,190,204,0.1);
+  padding-top: 0.5rem;
+  margin-top: 0.1rem;
+}
+.morse-decoder--visible { display: flex; }
+.morse-decoder-label {
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  color: var(--clr-ui-mid);
+  letter-spacing: 0.06em;
+}
+.morse-decoder-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.morse-input {
+  flex: 1;
+  min-width: 80px;
+  font-family: var(--font-freq);
+  font-size: 0.7rem;
+  color: var(--clr-dial-warm);
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(240,184,74,0.2);
+  border-radius: 2px;
+  padding: 0.3em 0.5em;
+  outline: none;
+  letter-spacing: 0.08em;
+  transition: border-color 0.15s;
+}
+.morse-input:focus { border-color: rgba(240,184,74,0.5); }
+.morse-input::placeholder { color: var(--clr-text-muted); opacity: 1; }
+.morse-action-btn {
+  font-family: var(--font-freq);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clr-dial-warm);
+  background: transparent;
+  border: 1px solid rgba(240,184,74,0.3);
+  padding: 0.3em 0.7em;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.morse-action-btn:hover,
+.morse-action-btn:focus-visible {
+  border-color: rgba(240,184,74,0.7);
+  box-shadow: 0 0 8px rgba(240,184,74,0.25);
+  outline: none;
+}
+.morse-action-btn--secondary {
+  color: var(--clr-ui-mid);
+  border-color: rgba(138,96,48,0.3);
+}
+.morse-action-btn--secondary:hover,
+.morse-action-btn--secondary:focus-visible {
+  color: var(--clr-dial-warm);
+  border-color: rgba(138,96,48,0.6);
+}
+.morse-result {
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  min-height: 1.2em;
+  color: var(--clr-ui-mid);
+  letter-spacing: 0.04em;
+}
+.morse-result--correct { color: #a8d87a; }
+.morse-result--wrong   { color: #cc9a7a; }
+.morse-result--revealed { color: var(--clr-dial-warm); font-style: italic; }
+
+/* ── Morse chart dialog ────────────────────────────── */
+.morse-chart-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(2px);
+}
+/* [hidden] already sets display:none via the reset rule */
+
+.morse-chart-inner {
+  background: linear-gradient(160deg, #1e1508 0%, #140f04 100%);
+  border: 1px solid rgba(122,190,204,0.22);
+  border-radius: 6px;
+  padding: 1.4rem;
+  width: min(520px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.morse-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.morse-chart-title {
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  color: var(--clr-dial-warm);
+  letter-spacing: 0.1em;
+  font-weight: normal;
+}
+.morse-chart-close {
+  background: transparent;
+  border: 1px solid rgba(122,190,204,0.3);
+  border-radius: 50%;
+  width: 28px; height: 28px;
+  color: #7abecc;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.morse-chart-close:hover,
+.morse-chart-close:focus-visible {
+  border-color: #7abecc;
+  box-shadow: 0 0 6px rgba(122,190,204,0.4);
+  outline: none;
+}
+
+.morse-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.5rem 0.7rem;
+}
+.morse-chart-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+.morse-chart-char {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  color: var(--clr-dial-warm);
+  font-weight: bold;
+}
+.morse-chart-code {
+  font-family: var(--font-freq);
+  font-size: 0.7rem;
+  color: #7abecc;
+  letter-spacing: 0.12em;
+}
+.morse-chart-timing {
+  font-family: var(--font-freq);
+  font-size: 0.55rem;
+  color: var(--clr-text-muted);
+  letter-spacing: 0.06em;
+  border-top: 1px solid rgba(122,190,204,0.08);
+  padding-top: 0.6rem;
+  line-height: 1.8;
+}
+
+@media (max-width: 400px) {
+  .morse-panel   { transition: none; }
+  .morse-decoder-row { flex-direction: column; }
+  .morse-action-btn  { width: 100%; text-align: center; }
+}
