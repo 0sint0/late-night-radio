@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    style.css  –  Late Night Radio
    Mood: dim room, warm glowing dial, tactile knob.
 ============================================================ */
@@ -599,10 +599,6 @@ body {
   #freq-readout { font-size: 1.5rem; }
 }
 
-  :root { --knob-size: 64px; --dial-h: 100px; }
-  .knob-row { gap: 1rem; }
-  #freq-readout { font-size: 1.5rem; }
-}
 
 
 #freq-readout-wrap {
