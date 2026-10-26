@@ -3,6 +3,7 @@
    Slice 1: AudioContext, dial bridge, volume, canvas, ticks.
    Slice 2: Station detection, signal meter, lock lamp, found-list.
    Slice 3: Morse panel, lamp sync, strip, speed, decoder, chart.
+   Slice 4: Story captions, clues, progress, gating, finale.
 ================================================================ */
 
 (function () {
@@ -17,6 +18,14 @@
   var morseSpeed      = 'slow';
   var decodedStations = {};
   var MORSE_UNIT_MS   = { slow: 300, normal: 180, fast: 120 };
+
+  /* Slice 4 state */
+  var GATE_STATION_ID    = 'st-08';
+  var GATE_FOUND_NEEDED  = 7;       /* all 7 non-gated stations found */
+  var GATE_DECODED_NEEDED = 2;      /* st-02 and st-05 decoded */
+  var GATE_MORSE_IDS     = ['st-02', 'st-05'];
+  var gateOpen           = false;   /* becomes true when gate conditions met */
+  var gateNoticeSent     = false;   /* live-region notice fires only once */
 
   /* Build dial tick marks */
 
@@ -130,6 +139,8 @@
       lampEl.classList.remove('lock-lamp--on');
     }
     updateMorsePanel(station, strength, locked);
+    updateCaptionArea(station, locked);
+    updateGateMessage(station, strength);
   }
 
   function markFound(station) {
@@ -141,6 +152,7 @@
       setTimeout(function () { lamp.classList.remove('lock-lamp--flash'); }, 600);
     }
     console.info('LNR: locked ' + station.name + ' @ ' + station.frequency + ' MHz');
+    onStationFound(station);
   }
 
   /* Slice 2: frequency-change handler */
@@ -150,6 +162,13 @@
     var result   = getSignalStrength(freq);
     var station  = result.station;
     var strength = result.strength;
+
+    /* Slice 4: gate — suppress st-08 until conditions met */
+    if (station && station.id === GATE_STATION_ID && !gateOpen) {
+      station  = null;
+      strength = 0;
+    }
+
     AudioEngine.setStationStrength(station, strength);
     updateSignalMeter(strength);
     var isLocked = lockedStation && station && lockedStation.id === station.id;
@@ -257,6 +276,7 @@
         decodedStations[lockedStation.id] = true;
         showResult(result, '\u2713 Correct \u2014 ' + lockedStation.content, 'correct');
         revealStation(lockedStation);
+        onStationDecoded(lockedStation);
       } else {
         showResult(result, 'Not quite \u2014 try again.', 'wrong');
       }
@@ -264,9 +284,11 @@
 
     revealBtn.addEventListener('click', function () {
       if (!lockedStation || lockedStation.type !== 'morse') return;
+      var wasNew = !decodedStations[lockedStation.id];
       decodedStations[lockedStation.id] = true;
       showResult(result, 'The message: ' + lockedStation.content, 'revealed');
       revealStation(lockedStation);
+      if (wasNew) onStationDecoded(lockedStation);
     });
 
     input.addEventListener('keydown', function (e) {
@@ -288,6 +310,158 @@
     if (nameEl && decodedStations[station.id]) {
       nameEl.title = station.content;
     }
+    /* Slice 4: show Morse caption now that it's decoded */
+    updateCaptionArea(station, true);
+  }
+
+  /* ── Slice 4: Story captions ─────────────────────────── */
+
+  function updateCaptionArea(station, locked) {
+    var area = document.getElementById('station-caption-area');
+    if (!area) return;
+    if (!station || !locked) {
+      area.classList.remove('caption-area--visible');
+      area.innerHTML = '';
+      return;
+    }
+    var data = (typeof STORY !== 'undefined') ? STORY.getData(station.id) : null;
+    if (!data) { area.classList.remove('caption-area--visible'); return; }
+    var shouldShow = false;
+    if (station.type === 'music' || station.type === 'fragment') {
+      shouldShow = !!locked;
+    } else if (station.type === 'morse') {
+      shouldShow = !!decodedStations[station.id];
+    }
+    if (!shouldShow) {
+      area.classList.remove('caption-area--visible');
+      area.innerHTML = '';
+      return;
+    }
+    var html = '<p class="caption-title">' + escHtml(data.title) + '</p>' +
+               '<p class="caption-text">'  + escHtml(data.caption) + '</p>' +
+               '<p class="caption-clue">'  + escHtml(data.clue)    + '</p>';
+    area.innerHTML = html;
+    area.classList.add('caption-area--visible');
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ── Slice 4: Progress counter ───────────────────────── */
+
+  function updateProgress() {
+    var el = document.getElementById('progress-counter');
+    if (!el) return;
+    var found = Object.keys(foundStations).length;
+    el.textContent = 'Clues found: ' + found + ' of 8';
+    el.setAttribute('aria-label', 'Clues found: ' + found + ' of 8');
+  }
+
+  /* ── Slice 4: Gate logic ─────────────────────────────── */
+
+  function checkGate() {
+    if (gateOpen) return;
+    var foundCount = 0;
+    for (var id in foundStations) { if (id !== GATE_STATION_ID) foundCount++; }
+    var decodedCount = 0;
+    for (var di = 0; di < GATE_MORSE_IDS.length; di++) {
+      if (decodedStations[GATE_MORSE_IDS[di]]) decodedCount++;
+    }
+    if (foundCount >= GATE_FOUND_NEEDED && decodedCount >= GATE_DECODED_NEEDED) {
+      gateOpen = true;
+      if (!gateNoticeSent) { gateNoticeSent = true; showGateNotice(); }
+    }
+  }
+
+  function showGateNotice() {
+    var region = document.getElementById('story-live-region');
+    if (region) {
+      region.textContent = '';
+      setTimeout(function () {
+        region.textContent = 'A new signal has appeared at the top of the dial.';
+      }, 80);
+    }
+    var notice = document.getElementById('gate-notice');
+    if (notice) {
+      notice.textContent = 'A new signal has appeared at the top of the dial.';
+      notice.classList.add('gate-notice--visible');
+      setTimeout(function () { notice.classList.remove('gate-notice--visible'); }, 7000);
+    }
+  }
+
+  function updateGateMessage(station, strength) {
+    var msg = document.getElementById('gate-static-msg');
+    if (!msg) return;
+    var dialFreq = (typeof Dial !== 'undefined') ? Dial.getFrequency() : 88.0;
+    var rawResult = getSignalStrength(dialFreq);
+    var nearGate = rawResult.station && rawResult.station.id === GATE_STATION_ID &&
+                   rawResult.strength > 0.3;
+    msg.classList.toggle('gate-static-msg--visible', nearGate && !gateOpen);
+  }
+
+  function onStationFound(station) {
+    updateProgress();
+    if (station.id !== GATE_STATION_ID) checkGate();
+  }
+
+  function onStationDecoded(station) {
+    updateProgress();
+    checkGate();
+    if (station.id === GATE_STATION_ID) {
+      setTimeout(showFinaleDialog, 600);
+    }
+  }
+
+  /* ── Slice 4: Finale dialog ──────────────────────────── */
+
+  function showFinaleDialog() {
+    var dialog = document.getElementById('finale-dialog');
+    if (!dialog) return;
+    if (typeof STORY !== 'undefined') {
+      var data    = STORY.getEpilogue();
+      var titleEl = dialog.querySelector('.finale-title');
+      var bodyEl  = dialog.querySelector('.finale-body');
+      if (titleEl) titleEl.textContent = data.title;
+      if (bodyEl) {
+        bodyEl.innerHTML = '';
+        for (var i = 0; i < data.paragraphs.length; i++) {
+          var p = document.createElement('p');
+          p.className   = 'finale-para';
+          p.textContent = data.paragraphs[i];
+          bodyEl.appendChild(p);
+        }
+      }
+    }
+    var closeBtn = dialog.querySelector('.finale-close-btn');
+    openDialog(dialog, closeBtn);
+  }
+
+  function initFinaleDialog() {
+    var dialog   = document.getElementById('finale-dialog');
+    if (!dialog) return;
+    var closeBtn = dialog.querySelector('.finale-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () { closeDialog(dialog, null); });
+    }
+    dialog.addEventListener('click', function (e) {
+      if (e.target === dialog) closeDialog(dialog, null);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !dialog.hidden) { e.stopPropagation(); closeDialog(dialog, null); }
+    });
+    dialog.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      var focusable = Array.prototype.slice.call(
+        dialog.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])")
+      );
+      if (!focusable.length) return;
+      var first = focusable[0]; var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
   }
 
   /* Slice 3: chart dialog */
@@ -388,6 +562,8 @@
     initMorseSpeed();
     initMorseDecoder();
     initChartDialog();
+    initFinaleDialog();
+    updateProgress();
   }
 
   /* Boot */

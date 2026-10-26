@@ -158,31 +158,119 @@ var AudioEngine = (function () {
     return { outputGain: outputGain, stop: function () { stopped = true; clearInterval(tmr); try { osc.stop(); } catch(e){} } };
   }
 
-  /* Fragment generator (Slice 2, unchanged) */
-  function makeFragmentPlayer(station, outputGain) {
-    var stopped = false; var patterns = {};
-    patterns['st-03'] = { freqs:[220,277.2,185], timings:[300,500,700,1100] };
-    patterns['st-06'] = { freqs:[110,138.6],     timings:[1200,400,1800,600] };
-    var pat = patterns[station.id] || { freqs:[220,277.2,185], timings:[300,500,700,1100] };
-    var freqs = pat.freqs; var times = pat.timings;
-    var fi = 0; var ti = 0; var tmr = null;
-    function playNext() {
+  /* Fragment generator (Slice 4: synthesized sounds matching story captions) */
+
+  /* st-03 The Hiss: filtered tape noise + slow voice-like countdown pulses */
+  function makeHissPlayer(outputGain) {
+    var stopped = false;
+    var hissNoise = ctx.createBufferSource();
+    var hissBuf   = buildNoiseBuffer(0.5);
+    hissNoise.buffer = hissBuf; hissNoise.loop = true;
+    var hissBP = ctx.createBiquadFilter();
+    hissBP.type = 'bandpass'; hissBP.frequency.value = 3200; hissBP.Q.value = 0.8;
+    var hissGainNode = ctx.createGain(); hissGainNode.gain.value = 0.38;
+    hissNoise.connect(hissBP); hissBP.connect(hissGainNode);
+    hissGainNode.connect(outputGain);
+    hissNoise.start();
+    var PULSE_COUNT = 10; var PULSE_INTERVAL = 1600; var LOOP_PAUSE = 3200;
+    var PULSE_DUR_SEC = 0.28; var pulseIdx = 0; var pulseTmr = null;
+    function nextPulse() {
       if (stopped) return;
-      var osc = ctx.createOscillator(); var env = ctx.createGain();
-      osc.type = 'sine'; osc.frequency.value = freqs[fi % freqs.length]; fi++;
-      env.gain.value = 0;
+      if (pulseIdx >= PULSE_COUNT) {
+        pulseIdx = 0; pulseTmr = setTimeout(nextPulse, LOOP_PAUSE); return;
+      }
+      var freq = 320 - pulseIdx * 22;
+      var osc  = ctx.createOscillator(); var env = ctx.createGain();
+      osc.type = 'triangle'; osc.frequency.value = freq; env.gain.value = 0;
       osc.connect(env); env.connect(outputGain);
-      var t = ctx.currentTime; var dur = 0.18;
-      osc.start(t);
+      var t = ctx.currentTime; osc.start(t);
       env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(TONE_GAIN * 0.8, t + 0.03);
-      env.gain.setValueAtTime(TONE_GAIN * 0.8, t + dur - 0.03);
-      env.gain.linearRampToValueAtTime(0, t + dur);
-      osc.stop(t + dur + 0.01);
-      tmr = setTimeout(playNext, times[ti % times.length]); ti++;
+      env.gain.linearRampToValueAtTime(0.07, t + 0.06);
+      env.gain.setValueAtTime(0.07, t + PULSE_DUR_SEC - 0.08);
+      env.gain.linearRampToValueAtTime(0, t + PULSE_DUR_SEC);
+      osc.stop(t + PULSE_DUR_SEC + 0.02);
+      pulseIdx++; pulseTmr = setTimeout(nextPulse, PULSE_INTERVAL);
     }
-    playNext();
-    return { outputGain: outputGain, stop: function () { stopped = true; if (tmr) clearTimeout(tmr); } };
+    nextPulse();
+    return { outputGain: outputGain, stop: function () {
+      stopped = true; if (pulseTmr) clearTimeout(pulseTmr);
+      try { hissNoise.stop(); } catch (e) {}
+    }};
+  }
+
+
+  /* st-06 Room Tone: low room hum + sparse soft events */
+  function makeRoomTonePlayer(outputGain) {
+    var stopped = false;
+    var hum1 = ctx.createOscillator(); var hum2 = ctx.createOscillator();
+    var humEnv = ctx.createGain();
+    hum1.type = 'sine'; hum1.frequency.value = 52;
+    hum2.type = 'sine'; hum2.frequency.value = 53.4;
+    humEnv.gain.value = 0.06;
+    hum1.connect(humEnv); hum2.connect(humEnv); humEnv.connect(outputGain);
+    hum1.start(); hum2.start();
+    var eventQueue = ['click', 'creak', 'door', 'silence', 'silence'];
+    var eventTmr = null;
+    function makeKettleClick() {
+      var src = ctx.createBufferSource(); src.buffer = buildNoiseBuffer(1.0);
+      var filt = ctx.createBiquadFilter();
+      filt.type = 'highpass'; filt.frequency.value = 1800;
+      var env = ctx.createGain(); env.gain.value = 0;
+      src.connect(filt); filt.connect(env); env.connect(outputGain);
+      var t = ctx.currentTime; src.start(t);
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(0.12, t + 0.003);
+      env.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      src.stop(t + 0.08);
+    }
+    function makeChairCreak() {
+      var osc = ctx.createOscillator(); var env = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = 140; env.gain.value = 0;
+      osc.connect(env); env.connect(outputGain);
+      var t = ctx.currentTime; osc.start(t);
+      osc.frequency.setValueAtTime(140, t);
+      osc.frequency.linearRampToValueAtTime(118, t + 0.35);
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(0.09, t + 0.08);
+      env.gain.setValueAtTime(0.09, t + 0.22);
+      env.gain.linearRampToValueAtTime(0, t + 0.45);
+      osc.stop(t + 0.5);
+    }
+    function makeDoorThud() {
+      var osc = ctx.createOscillator(); var env = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = 68; env.gain.value = 0;
+      osc.connect(env); env.connect(outputGain);
+      var t = ctx.currentTime; osc.start(t);
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(0.14, t + 0.012);
+      env.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+      osc.stop(t + 0.35);
+    }
+    function scheduleEvent() {
+      if (stopped) return;
+      eventTmr = setTimeout(fireEvent, 3000 + Math.random() * 6000);
+    }
+    function fireEvent() {
+      if (stopped) return;
+      var pick = eventQueue[Math.floor(Math.random() * eventQueue.length)];
+      if (pick === 'click')  makeKettleClick();
+      if (pick === 'creak')  makeChairCreak();
+      if (pick === 'door')   makeDoorThud();
+      scheduleEvent();
+    }
+    scheduleEvent();
+    return { outputGain: outputGain, stop: function () {
+      stopped = true; if (eventTmr) clearTimeout(eventTmr);
+      try { hum1.stop(); } catch (e) {}
+      try { hum2.stop(); } catch (e) {}
+    }};
+  }
+
+  /* Fragment dispatcher */
+  function makeFragmentPlayer(station, outputGain) {
+    if (station.id === 'st-03') return makeHissPlayer(outputGain);
+    if (station.id === 'st-06') return makeRoomTonePlayer(outputGain);
+    return makeHissPlayer(outputGain);
   }
 
   /* Station lifecycle */

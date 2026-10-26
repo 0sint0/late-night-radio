@@ -1,5 +1,5 @@
 // js/stations.js — Station data and signal-strength helpers.
-// Slice 2: 8 stations defined.  Content is placeholder; real story in Slice 4.
+// Slice 2: 8 stations defined.  Content updated in Slice 4.
 // Adding a station = adding one object to STATIONS.
 //
 // Types: "music" | "morse" | "fragment"
@@ -18,7 +18,7 @@ var STATIONS = [
     frequency: 91.7,
     type     : 'morse',
     name     : 'Signal Zero',
-    content  : 'SOS SOS WHO IS THERE'
+    content  : 'NIGHT OWL IS STILL ON AIR'
   },
   {
     id       : 'st-03',
@@ -39,7 +39,7 @@ var STATIONS = [
     frequency: 99.0,
     type     : 'morse',
     name     : 'The Operator',
-    content  : 'MEET ME AT THE LIGHTHOUSE'
+    content  : 'THE DOOR WAS NEVER LOCKED'
   },
   {
     id       : 'st-06',
@@ -60,7 +60,7 @@ var STATIONS = [
     frequency: 107.1,
     type     : 'morse',
     name     : 'Last Transmission',
-    content  : 'DO NOT COME HERE'
+    content  : 'GOODNIGHT I AM SAFE SLEEP WELL'
   }
 ];
 

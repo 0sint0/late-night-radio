@@ -103,6 +103,23 @@
 
       </div><!-- /#station-panel -->
 
+      <!-- ── Slice 4: Caption + clue area ───────────────── -->
+      <!-- Hidden until a station is locked; JS fills and shows it. -->
+      <div id="station-caption-area"
+           class="caption-area"
+           aria-live="polite"
+           aria-atomic="true"
+           aria-label="Station clue"></div>
+
+      <!-- ── Slice 4: Gate static message ───────────────── -->
+      <!-- Shown near 107.1 before gate opens. -->
+      <div id="gate-static-msg"
+           class="gate-static-msg"
+           aria-live="polite"
+           role="status">
+        Only static here. Something is still missing.
+      </div>
+
       <!-- ── Slice 3: Morse panel ──────────────────────────── -->
       <!-- Hidden until a Morse station is in range.
            JS adds .morse-panel--visible to show it. -->
@@ -205,12 +222,58 @@
                 title="Mute / unmute">🔊</button>
       </div>
 
+      <!-- ── Slice 4: Progress counter ──────────────── -->
+      <div id="progress-counter"
+           class="progress-counter"
+           aria-label="Clues found: 0 of 8"
+           aria-live="polite"
+           aria-atomic="true">Clues found: 0 of 8</div>
+
     </div><!-- /.radio-body -->
 
     <!-- Bottom plate -->
     <div class="radio-foot" aria-hidden="true"></div>
 
   </div><!-- /#radio-wrapper -->
+
+  <!-- ═══════════════════════════════════════════════════
+       Slice 4: Gate-open notice (top of page, fades in)
+  ════════════════════════════════════════════════════ -->
+  <div id="gate-notice"
+       class="gate-notice"
+       aria-hidden="true"></div>
+
+  <!-- ═══════════════════════════════════════════════════
+       Slice 4: Story live region (screen reader only)
+       Used for gate-open announcement.
+  ════════════════════════════════════════════════════ -->
+  <div id="story-live-region"
+       class="sr-only"
+       aria-live="polite"
+       aria-atomic="true"></div>
+
+  <!-- ═══════════════════════════════════════════════════
+       Slice 4: Finale dialog
+       Shown after the last Morse message is decoded.
+  ════════════════════════════════════════════════════ -->
+  <div id="finale-dialog"
+       class="finale-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="finale-title"
+       hidden>
+
+    <div class="finale-inner">
+      <h2 id="finale-title" class="finale-title">A Note Left on the Console</h2>
+      <div class="finale-body">
+        <!-- Built by JS from STORY.getEpilogue() -->
+      </div>
+      <div class="finale-actions">
+        <button class="finale-close-btn" type="button">Keep listening</button>
+      </div>
+    </div>
+
+  </div><!-- /#finale-dialog -->
 
   <!-- ═══════════════════════════════════════════════════
        Slice 3: Morse chart dialog
@@ -251,6 +314,7 @@
        SCRIPTS  (dependency order, no ES modules)
   ════════════════════════════════════════════════════ -->
   <script src="js/stations.js"></script>
+  <script src="js/story.js"></script>
   <script src="js/morse.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/dial.js"></script>

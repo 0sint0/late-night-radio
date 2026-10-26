@@ -934,8 +934,223 @@ body {
   line-height: 1.8;
 }
 
+
 @media (max-width: 400px) {
   .morse-panel   { transition: none; }
   .morse-decoder-row { flex-direction: column; }
   .morse-action-btn  { width: 100%; text-align: center; }
 }
+
+/* =====================================================
+   Slice 4: Caption area, clue, progress, gate, finale
+====================================================== */
+
+/* ── Screen-reader-only utility ─────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Caption / clue area ────────────────────────────── */
+.caption-area {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.45s ease, opacity 0.45s ease;
+  padding: 0 0.1rem;
+}
+.caption-area--visible {
+  max-height: 300px;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .caption-area { transition: none; }
+}
+
+.caption-title {
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--clr-ui-mid);
+  margin-bottom: 0.35rem;
+}
+
+.caption-text {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  color: var(--clr-dial-warm);
+  line-height: 1.55;
+  margin-bottom: 0.45rem;
+  opacity: 0.88;
+}
+
+.caption-clue {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  color: var(--clr-text-muted);
+  line-height: 1.5;
+  font-style: italic;
+  border-top: 1px solid rgba(240,184,74,0.08);
+  padding-top: 0.35rem;
+}
+
+/* ── Progress counter ───────────────────────────────── */
+.progress-counter {
+  font-family: var(--font-freq);
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  text-align: center;
+  padding-top: 0.1rem;
+  opacity: 0.7;
+}
+
+/* ── Gate static message ────────────────────────────── */
+.gate-static-msg {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  color: var(--clr-text-muted);
+  text-align: center;
+  font-style: italic;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  padding: 0;
+}
+.gate-static-msg--visible {
+  max-height: 3em;
+  opacity: 1;
+  padding: 0.3rem 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-static-msg { transition: none; }
+}
+
+/* ── Gate-open notice (overlaid text, fades in then out) */
+.gate-notice {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--clr-dial-warm);
+  background: rgba(10,8,4,0.88);
+  border: 1px solid rgba(240,184,74,0.2);
+  border-radius: 3px;
+  padding: 0.55em 1.2em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  white-space: nowrap;
+  z-index: 50;
+}
+.gate-notice--visible {
+  opacity: 1;
+  animation: gateNoticeFade 7s ease forwards;
+}
+@keyframes gateNoticeFade {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-notice { transition: none; animation: none; }
+  .gate-notice--visible { opacity: 1; }
+}
+
+/* ── Finale dialog ──────────────────────────────────── */
+.finale-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(3px);
+}
+
+.finale-inner {
+  background: linear-gradient(160deg, #1e1508 0%, #120e04 100%);
+  border: 1px solid rgba(240,184,74,0.2);
+  border-radius: 6px;
+  padding: 2rem 2.2rem;
+  width: min(520px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.95), 0 0 60px rgba(200,130,10,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.finale-title {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  color: var(--clr-dial-warm);
+  letter-spacing: 0.1em;
+  font-weight: normal;
+  text-align: center;
+  text-shadow: 0 0 16px rgba(240,184,74,0.3);
+}
+
+.finale-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.finale-para {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--clr-dial-warm);
+  line-height: 1.7;
+  opacity: 0.9;
+}
+
+.finale-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(240,184,74,0.08);
+}
+
+.finale-close-btn {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clr-dial-warm);
+  background: transparent;
+  border: 1px solid rgba(240,184,74,0.3);
+  border-radius: 2px;
+  padding: 0.55em 1.8em;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.finale-close-btn:hover,
+.finale-close-btn:focus-visible {
+  border-color: var(--clr-dial-warm);
+  box-shadow: 0 0 10px rgba(240,184,74,0.25);
+  outline: none;
+}
+
+/* ── Morse panel max-height bump for Slice 4 captions ── */
+/* Captions appear inside .station-panel, not morse-panel, so no change needed */
+
+@media (max-width: 400px) {
+  .caption-area--visible { max-height: 380px; }
+  .finale-inner { padding: 1.4rem 1.2rem; }
+}
+
