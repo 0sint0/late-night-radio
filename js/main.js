@@ -4,6 +4,7 @@
    Slice 2: Station detection, signal meter, lock lamp, found-list.
    Slice 3: Morse panel, lamp sync, strip, speed, decoder, chart.
    Slice 4: Story captions, clues, progress, gating, finale.
+   Slice 5: Logbook, storage save/restore, reset.
 ================================================================ */
 
 (function () {
@@ -26,6 +27,9 @@
   var GATE_MORSE_IDS     = ['st-02', 'st-05'];
   var gateOpen           = false;   /* becomes true when gate conditions met */
   var gateNoticeSent     = false;   /* live-region notice fires only once */
+
+  /* Slice 5 state */
+  var epilogueSeen = false;
 
   /* Build dial tick marks */
 
@@ -145,13 +149,14 @@
 
   function markFound(station) {
     if (foundStations[station.id]) return;
-    foundStations[station.id] = station;
+    foundStations[station.id] = new Date().toISOString();
     var lamp = document.getElementById('lock-lamp');
     if (lamp) {
       lamp.classList.add('lock-lamp--flash');
       setTimeout(function () { lamp.classList.remove('lock-lamp--flash'); }, 600);
     }
     console.info('LNR: locked ' + station.name + ' @ ' + station.frequency + ' MHz');
+    saveProgress();
     onStationFound(station);
   }
 
@@ -372,6 +377,7 @@
     }
     if (foundCount >= GATE_FOUND_NEEDED && decodedCount >= GATE_DECODED_NEEDED) {
       gateOpen = true;
+      saveProgress();
       if (!gateNoticeSent) { gateNoticeSent = true; showGateNotice(); }
     }
   }
@@ -404,13 +410,18 @@
 
   function onStationFound(station) {
     updateProgress();
+    if (typeof Logbook !== 'undefined') Logbook.refresh();
     if (station.id !== GATE_STATION_ID) checkGate();
   }
 
   function onStationDecoded(station) {
     updateProgress();
+    saveProgress();
+    if (typeof Logbook !== 'undefined') Logbook.refresh();
     checkGate();
     if (station.id === GATE_STATION_ID) {
+      epilogueSeen = true;
+      saveProgress();
       setTimeout(showFinaleDialog, 600);
     }
   }
@@ -420,6 +431,9 @@
   function showFinaleDialog() {
     var dialog = document.getElementById('finale-dialog');
     if (!dialog) return;
+    /* Mark epilogue as seen and persist */
+    epilogueSeen = true;
+    saveProgress();
     if (typeof STORY !== 'undefined') {
       var data    = STORY.getEpilogue();
       var titleEl = dialog.querySelector('.finale-title');
@@ -524,6 +538,99 @@
 
   /* Power-on */
 
+  /* ── Slice 5: save / restore / reset ─────────────────────── */
+
+  function saveProgress() {
+    if (typeof Storage === 'undefined') return;
+    Storage.save({
+      found       : foundStations,
+      decoded     : decodedStations,
+      gateOpen    : gateOpen,
+      epilogueSeen: epilogueSeen
+    });
+  }
+
+  function restoreFromSave() {
+    if (typeof Storage === 'undefined') return;
+    var saved = Storage.load();
+
+    /* Restore found stations (keyed by id → ISO date string) */
+    for (var id in saved.found) {
+      if (!Object.prototype.hasOwnProperty.call(saved.found, id)) continue;
+      foundStations[id] = saved.found[id];
+    }
+
+    /* Restore decoded stations */
+    for (var did in saved.decoded) {
+      if (!Object.prototype.hasOwnProperty.call(saved.decoded, did)) continue;
+      decodedStations[did] = true;
+    }
+
+    /* Restore gate */
+    if (saved.gateOpen) {
+      gateOpen       = true;
+      gateNoticeSent = true;  /* suppress the "new signal" notice on load */
+    }
+
+    /* Restore epilogue flag */
+    epilogueSeen = saved.epilogueSeen;
+
+    /* Update all UI elements that depend on restored state */
+    updateProgress();
+
+    /* Re-show captions for any Morse stations already decoded */
+    /* (the caption area only shows if a station is currently locked,
+       so we don't need to do anything here — it will be correct the
+       next time the user tunes to each station) */
+  }
+
+  function resetAll() {
+    /* Clear saved data */
+    if (typeof Storage !== 'undefined') Storage.clear();
+
+    /* Reset all in-memory state */
+    foundStations   = {};
+    decodedStations = {};
+    gateOpen        = false;
+    gateNoticeSent  = false;
+    epilogueSeen    = false;
+    lockedStation   = null;
+    if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+
+    /* Close any open dialogs */
+    var finaleDlg = document.getElementById('finale-dialog');
+    if (finaleDlg && !finaleDlg.hidden) { finaleDlg.hidden = true; document.body.style.overflow = ''; }
+
+    /* Return dial to 88.0 MHz */
+    if (typeof Dial !== 'undefined') Dial.setFrequency(88.0);
+
+    /* Reset UI */
+    updateProgress();
+    updateStationPanel(null, 0, false);
+    updateSignalMeter(0);
+    clearMorseStrip();
+    var morseResult = document.getElementById('morse-result');
+    if (morseResult) { morseResult.textContent = ''; morseResult.className = 'morse-result'; }
+    var morseInput = document.getElementById('morse-input');
+    if (morseInput) morseInput.value = '';
+
+    /* Clear caption area */
+    var captionArea = document.getElementById('station-caption-area');
+    if (captionArea) { captionArea.classList.remove('caption-area--visible'); captionArea.innerHTML = ''; }
+
+    /* Refresh logbook (will show all unknown) */
+    if (typeof Logbook !== 'undefined') Logbook.refresh();
+
+    console.info('LNR: progress reset');
+  }
+
+  function showNoSaveNotice() {
+    if (typeof Storage === 'undefined') return;
+    if (Storage.storageAvailable) return;
+    var notice = document.getElementById('no-save-notice');
+    if (notice) notice.hidden = false;
+  }
+
   function powerOn() {
     var err         = document.getElementById('audio-error');
     var powerScreen = document.getElementById('power-screen');
@@ -563,6 +670,17 @@
     initMorseDecoder();
     initChartDialog();
     initFinaleDialog();
+    /* Slice 5: logbook, restore, no-save notice */
+    Logbook.init(function () {
+      return {
+        found       : foundStations,
+        decoded     : decodedStations,
+        gateOpen    : gateOpen,
+        epilogueSeen: epilogueSeen
+      };
+    });
+    restoreFromSave();
+    showNoSaveNotice();
     updateProgress();
   }
 
@@ -579,7 +697,11 @@
     Stations           : STATIONS,
     Morse              : Morse,
     getFoundStations   : function () { return foundStations; },
-    getDecodedStations : function () { return decodedStations; }
+    getDecodedStations : function () { return decodedStations; },
+    /* Slice 5: exposed for logbook and reset */
+    resetAll           : resetAll,
+    showFinale         : showFinaleDialog,
+    getEpilogueSeen    : function () { return epilogueSeen; }
   };
 
 }());

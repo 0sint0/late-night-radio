@@ -229,12 +229,30 @@
            aria-live="polite"
            aria-atomic="true">Clues found: 0 of 8</div>
 
+      <!-- ── Slice 5: Logbook button ─────────────── -->
+      <div class="logbook-row">
+        <button id="logbook-btn"
+                class="logbook-btn"
+                type="button"
+                aria-haspopup="dialog"
+                aria-label="Open logbook">Logbook</button>
+      </div>
+
     </div><!-- /.radio-body -->
 
     <!-- Bottom plate -->
     <div class="radio-foot" aria-hidden="true"></div>
 
   </div><!-- /#radio-wrapper -->
+
+  <!-- ═══════════════════════════════════════════════════
+       Slice 5: No-save notice
+       Shown only when localStorage is unavailable.
+  ════════════════════════════════════════════════════ -->
+  <p id="no-save-notice"
+     class="no-save-notice"
+     role="status"
+     hidden>Progress cannot be saved in this browser or mode.</p>
 
   <!-- ═══════════════════════════════════════════════════
        Slice 4: Gate-open notice (top of page, fades in)
@@ -311,6 +329,79 @@
   </div><!-- /#morse-chart-dialog -->
 
   <!-- ═══════════════════════════════════════════════════
+       Slice 5: Logbook dialog
+       Lists all stations; opened by the Logbook button.
+  ════════════════════════════════════════════════════ -->
+  <div id="logbook-dialog"
+       class="lb-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="logbook-title"
+       hidden>
+
+    <div class="lb-inner">
+
+      <div class="lb-header">
+        <h2 id="logbook-title" class="lb-title">Logbook</h2>
+        <button class="lb-close-btn"
+                type="button"
+                aria-label="Close logbook">&#x2715;</button>
+      </div>
+
+      <!-- Summary line (updated by JS) -->
+      <p class="lb-summary"
+         aria-live="polite"
+         aria-atomic="true">0 of 8 signals found</p>
+
+      <!-- Station list (populated by JS) -->
+      <ul class="lb-station-list" aria-label="Stations">
+        <!-- Built by Logbook.renderLogbook() -->
+      </ul>
+
+      <!-- Actions section -->
+      <div class="lb-actions">
+        <!-- "Read the ending again" — hidden until epilogue seen -->
+        <button class="lb-ending-btn"
+                type="button"
+                hidden>Read the ending again</button>
+      </div>
+
+      <!-- Reset — visually separated -->
+      <div class="lb-reset-zone" role="group" aria-label="Danger zone">
+        <p class="lb-reset-label">Erase all progress</p>
+        <button class="lb-reset-btn"
+                type="button">Reset progress</button>
+      </div>
+
+    </div><!-- /.lb-inner -->
+
+  </div><!-- /#logbook-dialog -->
+
+  <!-- ═══════════════════════════════════════════════════
+       Slice 5: Reset confirmation dialog
+  ════════════════════════════════════════════════════ -->
+  <div id="reset-confirm-dialog"
+       class="reset-confirm-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="reset-confirm-title"
+       hidden>
+
+    <div class="reset-confirm-inner">
+      <h2 id="reset-confirm-title" class="reset-confirm-title">Reset all progress?</h2>
+      <p class="reset-confirm-body">
+        All found stations and decoded messages will be permanently erased.
+        This cannot be undone.
+      </p>
+      <div class="reset-confirm-actions">
+        <button class="reset-cancel-btn" type="button">Cancel</button>
+        <button class="reset-confirm-btn" type="button">Yes, erase everything</button>
+      </div>
+    </div>
+
+  </div><!-- /#reset-confirm-dialog -->
+
+  <!-- ═══════════════════════════════════════════════════
        SCRIPTS  (dependency order, no ES modules)
   ════════════════════════════════════════════════════ -->
   <script src="js/stations.js"></script>
@@ -318,6 +409,8 @@
   <script src="js/morse.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/dial.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/logbook.js"></script>
   <script src="js/main.js"></script>
 
 </body>
