@@ -5,6 +5,7 @@
    Slice 3: Morse panel, lamp sync, strip, speed, decoder, chart.
    Slice 4: Story captions, clues, progress, gating, finale.
    Slice 5: Logbook, storage save/restore, reset.
+   Slice 6: Settings, accessibility, polish.
 ================================================================ */
 
 (function () {
@@ -155,7 +156,6 @@
       lamp.classList.add('lock-lamp--flash');
       setTimeout(function () { lamp.classList.remove('lock-lamp--flash'); }, 600);
     }
-    console.info('LNR: locked ' + station.name + ' @ ' + station.frequency + ' MHz');
     saveProgress();
     onStationFound(station);
   }
@@ -653,7 +653,12 @@
     var volSlider = document.getElementById('vol-slider');
     if (volSlider) {
       volSlider.addEventListener('input', function () {
-        AudioEngine.setVolume(parseFloat(this.value));
+        var v = parseFloat(this.value);
+        AudioEngine.setVolume(v);
+        /* sync to settings so it persists */
+        if (typeof Settings !== 'undefined') {
+          Settings.get().volume = v;
+        }
       });
     }
     var muteBtn = document.getElementById('mute-btn');
@@ -663,6 +668,7 @@
         muteBtn.textContent = nowMuted ? '\ud83d\udd07' : '\ud83d\udd0a';
         muteBtn.setAttribute('aria-label',   nowMuted ? 'Unmute' : 'Mute');
         muteBtn.setAttribute('aria-pressed', String(nowMuted));
+        if (typeof Settings !== 'undefined') Settings.get().muted = nowMuted;
       });
     }
     AudioEngine.setMorseKeyCallback(onMorseKey);
@@ -681,6 +687,15 @@
     });
     restoreFromSave();
     showNoSaveNotice();
+    /* Slice 6: settings, visibility, resume-on-interaction */
+    Settings.init();
+    Settings.applyToEngine();
+    Settings.initVisibility();
+    Settings.initResumeOnInteraction();
+    /* Sync outer vol slider to saved setting */
+    var outerVol = document.getElementById('vol-slider');
+    if (outerVol) outerVol.value = String(Settings.get().volume);
+    Settings.syncOuterMuteBtn();
     updateProgress();
   }
 

@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Late Night Radio – a browser mystery game. Tune the dial through static to find strange stations.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Late Night Radio: turn a dial through static until something fades in. A small browser mystery.">
   <title>Late Night Radio</title>
 
+  <!-- Inline SVG favicon: glowing dial needle -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230e0a04'/%3E%3Crect x='4' y='14' width='24' height='4' rx='1' fill='%23c8820a' opacity='.4'/%3E%3Crect x='15' y='6' width='2' height='20' rx='1' fill='%23ff6b35'/%3E%3C/svg%3E">
+
   <!--
-    Web fonts: loaded from Google Fonts.
-    Works on GitHub Pages and localhost.
-    Falls back to monospace / serif when offline (file://).
-    No other external requests exist in this project.
+    Web fonts loaded from Google Fonts.
+    Falls back to monospace / serif when offline or on file://.
+    No other external requests in this project.
   -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,7 +31,7 @@
     <h1>Late Night Radio</h1>
     <p>Somewhere in the static, something is waiting.</p>
     <button id="power-btn" type="button" aria-label="Power on the radio">
-      Power On
+      Power on
     </button>
     <p id="audio-error" hidden role="alert">
       Audio unavailable in this browser. Visual mode only.
@@ -162,7 +164,7 @@
         <!-- Decoder (shown only when locked on a Morse station) -->
         <div id="morse-decoder" class="morse-decoder" aria-label="Decode the message">
           <label class="morse-decoder-label" for="morse-input">
-            What does it say?
+          What does it say?
           </label>
           <div class="morse-decoder-row">
             <input id="morse-input"
@@ -195,6 +197,7 @@
         <div class="knob-wrap">
           <div class="knob-bezel" aria-hidden="true"></div>
           <div id="knob"
+               class="knob-no-touch"
                role="slider"
                tabindex="0"
                aria-label="Tuning knob"
@@ -205,7 +208,7 @@
           </div>
         </div>
 
-        <span class="knob-label" aria-hidden="true">Drag or<br>use arrow keys</span>
+        <span class="knob-label" aria-hidden="true">Drag or use<br>arrow keys</span>
       </div>
 
       <!-- ── Volume & mute ──────────────────────────── -->
@@ -229,13 +232,18 @@
            aria-live="polite"
            aria-atomic="true">Clues found: 0 of 8</div>
 
-      <!-- ── Slice 5: Logbook button ─────────────── -->
+      <!-- ── Slice 5+6: Logbook and Settings buttons ───── -->
       <div class="logbook-row">
         <button id="logbook-btn"
                 class="logbook-btn"
                 type="button"
                 aria-haspopup="dialog"
                 aria-label="Open logbook">Logbook</button>
+        <button id="settings-btn"
+                class="logbook-btn"
+                type="button"
+                aria-haspopup="dialog"
+                aria-label="Open sound settings">Settings</button>
       </div>
 
     </div><!-- /.radio-body -->
@@ -252,7 +260,7 @@
   <p id="no-save-notice"
      class="no-save-notice"
      role="status"
-     hidden>Progress cannot be saved in this browser or mode.</p>
+     hidden>Progress can't be saved in this browser or mode.</p>
 
   <!-- ═══════════════════════════════════════════════════
        Slice 4: Gate-open notice (top of page, fades in)
@@ -370,7 +378,7 @@
       <div class="lb-reset-zone" role="group" aria-label="Danger zone">
         <p class="lb-reset-label">Erase all progress</p>
         <button class="lb-reset-btn"
-                type="button">Reset progress</button>
+                type="button">Erase and start over</button>
       </div>
 
     </div><!-- /.lb-inner -->
@@ -390,8 +398,8 @@
     <div class="reset-confirm-inner">
       <h2 id="reset-confirm-title" class="reset-confirm-title">Reset all progress?</h2>
       <p class="reset-confirm-body">
-        All found stations and decoded messages will be permanently erased.
-        This cannot be undone.
+        Everything will be wiped: all found stations, decoded messages, gate state.
+        Can't be undone.
       </p>
       <div class="reset-confirm-actions">
         <button class="reset-cancel-btn" type="button">Cancel</button>
@@ -402,6 +410,81 @@
   </div><!-- /#reset-confirm-dialog -->
 
   <!-- ═══════════════════════════════════════════════════
+       Slice 6: Settings dialog
+  ════════════════════════════════════════════════════ -->
+  <div id="settings-dialog"
+       class="st-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="settings-title"
+       hidden>
+
+    <div class="st-inner">
+
+      <div class="st-header">
+        <h2 id="settings-title" class="st-title">Sound</h2>
+        <button class="st-close-btn"
+                type="button"
+                aria-label="Close settings">&#x2715;</button>
+      </div>
+
+      <div class="st-body">
+
+        <!-- Volume -->
+        <div class="st-row">
+          <label class="st-label" for="st-vol">Volume</label>
+          <input id="st-vol"
+                 class="st-slider"
+                 type="range"
+                 min="0" max="1" step="0.01" value="0.8"
+                 aria-label="Master volume">
+        </div>
+
+        <!-- Static level -->
+        <div class="st-row">
+          <label class="st-label" for="st-static">Static</label>
+          <input id="st-static"
+                 class="st-slider"
+                 type="range"
+                 min="0" max="1" step="0.01" value="1"
+                 aria-label="Static noise level">
+        </div>
+
+        <!-- Mute -->
+        <div class="st-row">
+          <span class="st-label" aria-hidden="true">Mute</span>
+          <button id="st-mute-btn"
+                  class="st-mute-btn"
+                  type="button"
+                  aria-pressed="false">Mute</button>
+        </div>
+
+        <!-- Morse speed -->
+        <div class="st-row st-row--speed">
+          <span class="st-label">Morse speed</span>
+          <div class="st-speed-btns" role="group" aria-label="Morse code speed">
+            <button class="st-speed-btn st-speed-btn--active"
+                    data-speed="slow"
+                    type="button"
+                    aria-pressed="true">Slow</button>
+            <button class="st-speed-btn"
+                    data-speed="normal"
+                    type="button"
+                    aria-pressed="false">Normal</button>
+            <button class="st-speed-btn"
+                    data-speed="fast"
+                    type="button"
+                    aria-pressed="false">Fast</button>
+          </div>
+        </div>
+
+      </div><!-- /.st-body -->
+
+    </div><!-- /.st-inner -->
+
+  </div><!-- /#settings-dialog -->
+
+  <!-- ═══════════════════════════════════════════════════
        SCRIPTS  (dependency order, no ES modules)
   ════════════════════════════════════════════════════ -->
   <script src="js/stations.js"></script>
@@ -410,6 +493,7 @@
   <script src="js/audio.js"></script>
   <script src="js/dial.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/logbook.js"></script>
   <script src="js/main.js"></script>
 
